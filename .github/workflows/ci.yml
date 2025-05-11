@@ -159,7 +159,7 @@ jobs:
                 docker login --username AWS --password-stdin ${{ secrets.ECR_REPO_URI }}
   
               echo "📁 Navigating to app directory..."
-              cd ~/entrytracker-deployment
+              cd ~
   
               echo "⬇️ Pulling latest image..."
               docker compose pull
