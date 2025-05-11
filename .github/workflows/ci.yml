@@ -64,7 +64,6 @@ jobs:
         - name: Shut down E2E environment
           run: docker compose down -v
 
-
   Push-to-ECR:
     needs: E2E-tests
     runs-on: ubuntu-latest
