@@ -101,11 +101,11 @@ jobs:
                   --output text | tr '\t' '\n' | grep -E '^1\.0\.[0-9]+$' | sort -V | tail -n1)
       
                 if [ -z "$latest" ]; then
-                  new_version="1.0.0"
+                  new_version="1.0"
                 else
                   patch=$(echo "$latest" | cut -d. -f3)
                   new_patch=$((patch + 1))
-                  new_version="1.0.${new_patch}"
+                  new_version="1.${new_patch}"
                 fi
       
                 echo "📦 New image version: $new_version"
