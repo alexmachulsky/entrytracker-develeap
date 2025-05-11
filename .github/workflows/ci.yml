@@ -29,4 +29,4 @@ jobs:
 
       - name: Run Tests
         run: |
-          curl http://localhost:5000
+          curl --fail http://localhost:5000 || (echo "App did not respond!" && cat app.log && exit 1)
