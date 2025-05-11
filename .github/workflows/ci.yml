@@ -141,7 +141,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Install SSH client
-        run: sudo apt-get update && apt-get install -y openssh-client
+        run:  apt-get update && apt-get install -y openssh-client
       - name: Add SSH key
         run: |
           mkdir -p ~/.ssh
