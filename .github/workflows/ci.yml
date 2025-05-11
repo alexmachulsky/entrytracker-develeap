@@ -41,3 +41,24 @@ jobs:
       - name: Build Docker image
         run: |
           docker build -t entrytracker:latest .
+
+  E2E-tests:
+    needs: Package-application
+    runs-on: ubuntu-latest
+    
+    steps:
+        - name: Checkout code
+          uses: actions/checkout@v4
+        - name: Set up Docker Compose
+          run: docker compose version
+
+        - name: Start E2E environment with docker compose
+          run: |
+            docker compose up -d --build
+            sleep 15
+        - name: Run E2E test with curl
+          run: |
+            curl --fail http://localhost:5000 || (echo "E2E test failed!" && docker compose logs && exit 1)
+        
+        - name: Shut down E2E environment
+          run: docker compose down
