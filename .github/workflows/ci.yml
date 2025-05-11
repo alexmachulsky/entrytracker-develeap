@@ -30,3 +30,14 @@ jobs:
       - name: Run Tests
         run: |
           curl --fail http://localhost:5000 || (echo "App did not respond!" && cat app.log && exit 1)
+
+
+    Package-application:
+      runs-on: ubuntu-latest
+      steps:
+        - name: Checkout code
+          uses: actions/checkout@v4
+
+        - name: Build Docker image
+          run: |
+            docker build -t entrytracker:latest .
