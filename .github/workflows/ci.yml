@@ -92,19 +92,25 @@ jobs:
       - name: Get latest patch version and bump it
         id: versioning
         run: |
-              set -e
-              repo="entrytracker-develeap"
-    
-              latest=$(aws ecr list-images \
-                --repository-name $repo \
-                --query 'imageIds[*].imageTag' \
-                --output text | tr '\t' '\n' | grep -E '^1\.0\.[0-9]+$' | sort -V | tail -n1)
-    
-              if [ -z "$latest" ]; then
-                new_version="1.0.0"
-              else
-                patch=$(echo "$latest" | cut -d. -f3)
-                new_patch=$((patch + 1))
+                set -e
+                repo="entrytracker-develeap"
+      
+                latest=$(aws ecr list-images \
+                  --repository-name $repo \
+                  --query 'imageIds[*].imageTag' \
+                  --output text | tr '\t' '\n' | grep -E '^1\.0\.[0-9]+$' | sort -V | tail -n1)
+      
+                if [ -z "$latest" ]; then
+                  new_version="1.0.0"
+                else
+                  patch=$(echo "$latest" | cut -d. -f3)
+                  new_patch=$((patch + 1))
+                  new_version="1.0.${new_patch}"
+                fi
+      
+                echo "📦 New image version: $new_version"
+                echo "version=$new_version" >> $GITHUB_OUTPUT
+
       - name: Build Docker image
         run: |
             docker build -t entrytracker:latest \
