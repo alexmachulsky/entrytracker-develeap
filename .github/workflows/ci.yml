@@ -166,4 +166,4 @@ jobs:
   
               echo "🚀 Restarting containers..."
               docker compose up -d
-EOF 
+              EOF 
