@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  #Build-application:
+  Build-application:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -31,7 +31,7 @@ jobs:
         run: |
           curl --fail http://localhost:5000 || (echo "App did not respond!" && cat app.log && exit 1)
 
-  #Package-application:
+  Package-application:
     needs: Build-application
     runs-on: ubuntu-latest
     steps:
@@ -42,7 +42,7 @@ jobs:
         run: |
           docker build -t entrytracker:latest .
 
-  #E2E-tests:
+  E2E-tests:
     needs: Package-application
     runs-on: ubuntu-latest
     
@@ -64,7 +64,7 @@ jobs:
         - name: Shut down E2E environment
           run: docker compose down -v
 
-  #Push-to-ECR:
+  Push-to-ECR:
     needs: E2E-tests
     runs-on: ubuntu-latest
     steps:
@@ -149,21 +149,21 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.EC2_KEY }}" > ~/.ssh/deploy_key.pem
           chmod 400 ~/.ssh/deploy_key.pem
-      - name: Deploy to EC2 via SSH
+      - name: Deploy to EC2 via SSHH
         run: |
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
-            set -e
-
-            echo "🔐 Logging in to Amazon ECR..."
-            aws ecr get-login-password --region ${{ secrets.ECR_REGION }} | \
-              docker login --username AWS --password-stdin ${{ secrets.ECR_REPO_URI }}
-
-            echo "📁 Navigating to app directory..."
-            cd ~
-
-            echo "⬇️ Pulling latest image..."
-            docker compose pull
-
-            echo "🚀 Restarting containers..."
-            docker compose up -d --build
-          EOF
+            ssh -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+              set -e
+  
+              echo "🔐 Logging in to Amazon ECR..."
+              aws ecr get-login-password --region ${{ secrets.ECR_REGION }} | \
+                docker login --username AWS --password-stdin ${{ secrets.ECR_REPO_URI }}
+  
+              echo "📁 Navigating to app directory..."
+              cd ~
+  
+              echo "⬇️ Pulling latest image..."
+              docker compose pull
+  
+              echo "🚀 Restarting containers..."
+              docker compose up -d --build
+             EOF 
