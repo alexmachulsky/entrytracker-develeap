@@ -135,3 +135,33 @@ jobs:
         run: |
             docker push 033567013533.dkr.ecr.ap-south-1.amazonaws.com/entrytracker-develeap:latest
             docker push 033567013533.dkr.ecr.ap-south-1.amazonaws.com/entrytracker-develeap:${{ steps.versioning.outputs.version }}
+
+  Deploy-to-EC2:
+    needs: Push-to-ECR
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install SSH client
+        run: sudo apt-get update && apt-get install -y openssh-client
+      - name: Add SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_KEY }}" > ~/.ssh/deploy_key.pem
+          chmod 400 ~/.ssh/deploy_key.pem
+      - name: Deploy to EC2 via SSH
+        run: |
+            ssh -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << EOF
+              set -e
+  
+              echo "🔐 Logging in to Amazon ECR..."
+              aws ecr get-login-password --region ${{ secrets.ECR_REGION }} | \
+                docker login --username AWS --password-stdin ${{ secrets.ECR_REPO_URI }}
+  
+              echo "📁 Navigating to app directory..."
+              cd ~/entrytracker
+  
+              echo "⬇️ Pulling latest image..."
+              docker compose pull
+  
+              echo "🚀 Restarting containers..."
+              docker compose up -d
+            EOF 
