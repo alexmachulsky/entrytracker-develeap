@@ -92,6 +92,6 @@ jobs:
         run: |
           docker tag entrytracker:latest 033567013533.dkr.ecr.ap-south-1.amazonaws.com/entrytracker-develeap:latest
 
-      - name: Push Docker image to ECR
+      - name: Push Docker image to ECRR
         run: |
           docker push 033567013533.dkr.ecr.ap-south-1.amazonaws.com/entrytracker-develeap:latest
