@@ -27,9 +27,22 @@ services:
       DB_NAME: entrytrackerdb
     networks:
       - backend-network
+      - frontend-network
+
+  nginx:
+    image: nginx:latest
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - entrytracker
+    networks:
+      - frontend-network
 
 volumes:
   db_data:
 
 networks:
   backend-network:
+  frontend-network:
