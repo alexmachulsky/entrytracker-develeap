@@ -92,7 +92,7 @@ jobs:
         id: versioning
         run: |
                 set -e
-                repo="033567013533.dkr.ecr.ap-south-1.amazonaws.com/entrytracker-develeap"
+                repo="entrytracker-develeap"
       
                 latest=$(aws ecr list-images \
                   --repository-name $repo \
