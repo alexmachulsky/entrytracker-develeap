@@ -95,6 +95,10 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-south-1
 
+      - name: Login to Amazon ECR
+        run: |
+          aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin 033567013533.dkr.ecr.ap-south-1.amazonaws.com
+    
       - name: Get latest patch version and bump it
         id: versioning
         run: |
