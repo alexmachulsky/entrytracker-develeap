@@ -100,11 +100,11 @@ jobs:
                   --output text | tr '\t' '\n' | grep -E '^1\.0\.[0-9]+$' | sort -V | tail -n1)
       
                 if [ -z "$latest" ]; then
-                  new_version="1.0"
+                  new_version="1.0.$"
                 else
                   patch=$(echo "$latest" | cut -d. -f3)
                   new_patch=$((patch + 1))
-                  new_version="1.${new_patch}"
+                  new_version="1.0.${new_patch}"
                 fi
       
                 echo "📦 New image version: $new_version"
@@ -149,7 +149,7 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.EC2_KEY }}" > ~/.ssh/deploy_key.pem
           chmod 400 ~/.ssh/deploy_key.pem
-      - name: Deploy to EC2 via SSH
+      - name: Deploy to EC2 via SSHH
         run: |
          ssh -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} \
          "set -e && \
