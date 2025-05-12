@@ -43,7 +43,7 @@ jobs:
           docker build -t entrytracker:latest .
           docker save entrytracker:latest -o entrytracker.tar
           echo "Docker image saved as entrytracker.tar"
-          
+
       - name: Upload Docker image as artifact
         uses: actions/upload-artifact@v4
         with:
