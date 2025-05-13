@@ -70,25 +70,24 @@ jobs:
           run: |
             docker compose up -d --build
 
-        - name: Wait for MySQL to be ready
+        - name: Wait for EntryTracker to be fully ready (DB included)
           run: |
+            echo "⏳ Waiting for EntryTracker to connect to DB..."
             for i in {1..30}; do
-              nc -z localhost 3306 && echo "✅ MySQL is up" && exit 0
-              echo "⏳ MySQL not ready yet... ($i)"
-              sleep 1
+              response=$(curl -s http://localhost:5000 || echo "")
+              if echo "$response" | grep -q '"message": "Data fetched successfully from the database."'; then
+                echo "✅ EntryTracker is fully connected to the database!"
+                exit 0
+              else
+                echo "🕐 Waiting... ($i)"
+                sleep 1
+              fi
             done
-            echo "❌ MySQL did not start"
+            echo "❌ EntryTracker did not connect to the database in time."
+            echo "Last response was:"
+            echo "$response"
             exit 1
 
-        - name: Wait for EntryTracker to be ready
-          run: |
-            echo "⏳ Waiting for EntryTracker on port 5000..."
-            for i in {1..30}; do
-              curl --fail http://localhost:5000 && echo "✅ EntryTracker is up!" && break
-              echo "⌛ EntryTracker not ready yet... ($i)"
-              sleep 1
-            done
-            curl --fail http://localhost:5000 || (echo "❌ EntryTracker not responding" && exit 1)
 
   Push-to-ECR:
     needs: E2E-tests
