@@ -1,4 +1,4 @@
-name: CI Pipeline - EntryTracker
+name: CI/CD Pipeline - EntryTracker
 
 on:
   push:
