@@ -69,7 +69,7 @@ jobs:
         - name: Start E2E environment with docker compose
           run: |
             docker compose up -d --build
-            
+
         - name: Wait for EntryTracker to be fully ready (DB included)
           run: |
             echo "⏳ Waiting for EntryTracker to connect to DB..."
@@ -101,12 +101,12 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: entrytracker-image
-  
+
       - name: Load Docker image from tar
         run: |
           docker load -i entrytracker.tar
           echo "Docker image loaded from entrytracker.tar"
-  
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -117,27 +117,24 @@ jobs:
       - name: Login to Amazon ECR
         run: |
           aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin 033567013533.dkr.ecr.ap-south-1.amazonaws.com
-    
-      - name: Get latest patch version and bump it
+
+      - name: Get latest Git tag and bump version
         id: versioning
         run: |
-          set -e
-          repo="entrytracker-develeap"
-  
-          latest=$(aws ecr list-images \
-            --repository-name $repo \
-            --query 'imageIds[*].imageTag' \
-            --output text | tr '\t' '\n' | grep -E '^1\.0\.[0-9]+$' | sort -V | tail -n1)
+          git fetch --tags
+
+          prefix="1.0"
+          latest=$(git tag | grep -E "^${prefix}\.[0-9]+$" | sort -V | tail -n1)
 
           if [ -z "$latest" ]; then
-            new_version="1.0.0"
+            new_version="${prefix}.0"
           else
             patch=$(echo "$latest" | cut -d. -f3)
             new_patch=$((patch + 1))
-            new_version="1.0.${new_patch}"
+            new_version="${prefix}.${new_patch}"
           fi
 
-          echo "📦 New image version: $new_version"
+          echo "📦 New version: $new_version"
           echo "version=$new_version" >> "$GITHUB_OUTPUT"
 
       - name: Tag Docker images
@@ -149,6 +146,16 @@ jobs:
         run: |
           docker push 033567013533.dkr.ecr.ap-south-1.amazonaws.com/entrytracker-develeap:latest
           docker push 033567013533.dkr.ecr.ap-south-1.amazonaws.com/entrytracker-develeap:${{ steps.versioning.outputs.version }}
+
+      - name: Create and push Git tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag ${{ steps.versioning.outputs.version }}
+          git push origin ${{ steps.versioning.outputs.version }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 
   Deploy-to-EC2:
     needs: Push-to-ECR
