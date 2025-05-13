@@ -157,6 +157,9 @@ jobs:
         run: |
           docker push ${{ secrets.ECR_REPO_URI }}:latest
           docker push ${{ secrets.ECR_REPO_URI }}:${{ steps.versioning.outputs.new_tag }}
+          
+      - name: Push Git tags
+        run: git push --tags       
 
 
 
