@@ -122,40 +122,36 @@ jobs:
           aws ecr get-login-password --region ${{ secrets.ECR_REGION }} | \
           docker login --username AWS --password-stdin ${{ secrets.ECR_REPO_URI }}
 
-      - name: Get the latest Git tag and bump patch version
+      - name: Get latest patch version and bump it
         id: versioning
         run: |
-          git fetch --tags
-          latest_tag=$(git tag -l "v*" | sort -V | tail -n 1)
+          set -e
+          repo="entrytracker-develeap"
 
-          if [ -z "$latest_tag" ]; then
-            new_tag="v1.0.0"
+          latest=$(aws ecr list-images \
+            --repository-name $repo \
+            --query 'imageIds[*].imageTag' \
+            --output text | tr '\t' '\n' | grep -E '^1\.0\.[0-9]+$' | sort -V | tail -n1)
+
+          if [ -z "$latest" ]; then
+            new_version="1.0.0"
           else
-            major=$(echo $latest_tag | cut -d '.' -f 1 | sed 's/v//')
-            minor=$(echo $latest_tag | cut -d '.' -f 2)
-            patch=$(echo $latest_tag | cut -d '.' -f 3)
-            patch=$((patch + 1))
-            new_tag="v${major}.${minor}.${patch}"
+            patch=$(echo "$latest" | cut -d. -f3)
+            new_patch=$((patch + 1))
+            new_version="1.0.${new_patch}"
           fi
 
-          echo "✅ New Git tag: $new_tag"
-          echo "new_tag=$new_tag" >> $GITHUB_OUTPUT
-
-      - name: Create and push Git tag
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag ${{ steps.versioning.outputs.new_tag }}
-          git push origin ${{ steps.versioning.outputs.new_tag }}
+          echo "📦 New image version: $new_version"
+          echo "version=$new_version" >> "$GITHUB_OUTPUT"
 
       - name: Tag Docker images correctly
         run: |
-          IMAGE_ID=$(docker images --format "{{.Repository}}:{{.Tag}}" | grep entrytracker)
-          docker tag $IMAGE_ID ${{ secrets.ECR_REPO_URI }}:${{ steps.versioning.outputs.new_tag }}
+          docker tag entrytracker:latest ${{ secrets.ECR_REPO_URI }}:latest
+          docker tag entrytracker:latest ${{ secrets.ECR_REPO_URI }}:${{ steps.versioning.outputs.new_tag }}
       - name: Push Docker images to ECR
         run: |
+          docker push ${{ secrets.ECR_REPO_URI }}:latest
           docker push ${{ secrets.ECR_REPO_URI }}:${{ steps.versioning.outputs.new_tag }}
-          
 
 
 
