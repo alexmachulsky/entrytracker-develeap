@@ -66,19 +66,21 @@ jobs:
         - name: Checkout code
           uses: actions/checkout@v4
 
-        - name: Set up Docker Compose
-          run: docker compose version
-
-        - name: Start E2E environment with docker compose
+        - name: Start and verify E2E environment
           run: |
             docker compose up -d --build
-            sleep 15
-        - name: Run E2E test with curl
-          run: |
-            curl --fail http://localhost:5000 || (echo "E2E test failed!" && docker compose logs && exit 1)
-        
-        - name: Shut down E2E environment
-          run: docker compose down -v
+
+            echo "Waiting for EntryTracker container to respond..."
+            for i in {1..30}; do
+              if curl -sSf http://localhost:5000 > /dev/null; then
+                echo "✅ EntryTracker responded successfully!"
+                break
+              fi
+              echo "⏳ Still waiting for EntryTracker... ($i)"
+              sleep 1
+            done
+
+            curl --fail http://localhost:5000 || (echo "❌ E2E test failed!" && docker compose logs && exit 1)
 
   Push-to-ECR:
     needs: E2E-tests
