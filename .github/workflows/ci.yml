@@ -67,88 +67,52 @@ jobs:
   Push-to-ECR:
     needs: E2E-tests
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Build Docker image
+      - name: Download Docker image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: entrytracker-image
+      - name: Load Docker image from tar
         run: |
-          docker build -t entrytracker:latest .
-
+          docker load -i entrytracker.tar
+          echo "Docker image loaded from entrytracker.tar"
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ap-south-1
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-              aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-              aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-              aws-region: ap-south-1
-    
+          aws-region: ${{ secrets.ECR_REGION }}
+      - name: Login to Amazon ECR
+        run: |
+          aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin 033567013533.dkr.ecr.ap-south-1.amazonaws.com
       - name: Get latest patch version and bump it
         id: versioning
         run: |
-                set -e
-                repo="entrytracker-develeap"
-      
-                latest=$(aws ecr list-images \
-                  --repository-name $repo \
-                  --query 'imageIds[*].imageTag' \
-                  --output text | tr '\t' '\n' | grep -E '^1\.0\.[0-9]+$' | sort -V | tail -n1)
-      
-                if [ -z "$latest" ]; then
-                  new_version="1.0.0"
-                else
-                  patch=$(echo "$latest" | cut -d. -f3)
-                  new_patch=$((patch + 1))
-                  new_version="1.0.${new_patch}"
-                fi
-      
-                echo "📦 New image version: $new_version"
-                echo "version=$new_version" >> $GITHUB_OUTPUT
-
-      - name: Build Docker image
+          set -e
+          repo="entrytracker-develeap"
+          latest=$(aws ecr list-images \
+            --repository-name $repo \
+            --query 'imageIds[*].imageTag' \
+            --output text | tr '\t' '\n' | grep -E '^1\.0\.[0-9]+$' | sort -V | tail -n1)
+          if [ -z "$latest" ]; then
+            new_version="1.0.0"
+          else
+            patch=$(echo "$latest" | cut -d. -f3)
+            new_patch=$((patch + 1))
+            new_version="1.0.${new_patch}"
+          fi
+          echo "📦 New image version: $new_version"
+          echo "version=$new_version" >> "$GITHUB_OUTPUT"
+      - name: Tag Docker images
         run: |
-            docker build -t entrytracker:latest \
-                         -t entrytracker:${{ steps.versioning.outputs.version }} .
-            echo "version=$new_version" >> $GITHUB_OUTPUT
-  
-      - name: Build Docker image
-        run: |
-            docker build -t entrytracker:latest \
-                         -t entrytracker:${{ steps.versioning.outputs.version }} .
-  
-      - name: Login to Amazon ECR
-        run: |
-            aws ecr get-login-password --region ap-south-1 | \
-            docker login --username AWS --password-stdin 033567013533.dkr.ecr.ap-south-1.amazonaws.com
-  
-      - name: Tag Docker images for ECR
-        run: |
-            docker tag entrytracker:latest 033567013533.dkr.ecr.ap-south-1.amazonaws.com/entrytracker-develeap:latest
-            docker tag entrytracker:${{ steps.versioning.outputs.version }} 033567013533.dkr.ecr.ap-south-1.amazonaws.com/entrytracker-develeap:${{ steps.versioning.outputs.version }}
-  
+          docker tag entrytracker:latest 033567013533.dkr.ecr.ap-south-1.amazonaws.com/entrytracker-develeap:latest
+          docker tag entrytracker:latest 033567013533.dkr.ecr.ap-south-1.amazonaws.com/entrytracker-develeap:${{ steps.versioning.outputs.version }}
       - name: Push Docker images to ECR
         run: |
-            docker push 033567013533.dkr.ecr.ap-south-1.amazonaws.com/entrytracker-develeap:latest
-            docker push 033567013533.dkr.ecr.ap-south-1.amazonaws.com/entrytracker-develeap:${{ steps.versioning.outputs.version }}
-      - name: Configure Git user
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-      - name: Create Git tag for the version
-        run: |
-          git tag -a v${{ steps.versioning.outputs.version }} -m "Release v${{ steps.versioning.outputs.version }}"
-
-      - name: Push Git tag to GitHub
-        run: git push origin v${{ steps.versioning.outputs.version }}
-
+          docker push 033567013533.dkr.ecr.ap-south-1.amazonaws.com/entrytracker-develeap:latest
+          docker push 033567013533.dkr.ecr.ap-south-1.amazonaws.com/entrytracker-develeap:${{ steps.versioning.outputs.version }}
 
   Deploy-to-EC2:
     needs: Push-to-ECR
