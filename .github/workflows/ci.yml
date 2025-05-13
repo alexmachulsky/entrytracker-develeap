@@ -143,8 +143,8 @@ jobs:
 
       - name: Tag Docker images correctly
         run: |
-          docker tag entrytracker:latest ${{ secrets.ECR_REPO_URI }}:latest
-          docker tag entrytracker:latest ${{ secrets.ECR_REPO_URI }}:${{ steps.versioning.outputs.new_tag }}
+          docker tag entrytracker:latest 033567013533.dkr.ecr.ap-south-1.amazonaws.com/entrytracker-develeap:latest
+          docker tag entrytracker:latest 033567013533.dkr.ecr.ap-south-1.amazonaws.com/entrytracker-develeap:${{ steps.versioning.outputs.new_tag }}
 
       - name: Push Docker images to ECR
         run: |
