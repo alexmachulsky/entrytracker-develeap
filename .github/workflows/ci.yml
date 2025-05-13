@@ -153,9 +153,17 @@ jobs:
         run: |
           docker push ${{ secrets.ECR_REPO_URI }}:latest
           docker push ${{ secrets.ECR_REPO_URI }}:${{ steps.versioning.outputs.new_tag }}
-          
-      - name: Push Git tags
-        run: git push --tags
+
+      - name: Create and push Git tags
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git tag ${{ steps.versioning.outputs.new_tag }}
+          git push origin ${{ steps.versioning.outputs.new_tag }}
+
+          git tag -f latest
+          git push -f origin latest
 
 
   Deploy-to-EC2:
