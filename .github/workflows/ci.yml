@@ -108,7 +108,7 @@ jobs:
       - name: Load Docker image from tar
         run: |
           docker load -i entrytracker.tar
-          echo "✅ Docker image loaded from artifact"
+          echo "✅ Docker image loaded"
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -148,18 +148,17 @@ jobs:
           git tag ${{ steps.versioning.outputs.new_tag }}
           git push origin ${{ steps.versioning.outputs.new_tag }}
 
-      - name: Tag Docker images
+      - name: Tag Docker images correctly
         run: |
-          docker tag entrytracker:latest ${{ secrets.ECR_REPO_URI }}:latest
-          docker tag entrytracker:latest ${{ secrets.ECR_REPO_URI }}:${{ steps.versioning.outputs.new_tag }}
+          IMAGE_ID=$(docker images --format "{{.Repository}}:{{.Tag}}" | grep entrytracker)
+          docker tag $IMAGE_ID ${{ secrets.ECR_REPO_URI }}:${{ steps.versioning.outputs.new_tag }}
+          docker tag $IMAGE_ID ${{ secrets.ECR_REPO_URI }}:latest
 
       - name: Push Docker images to ECR
         run: |
-          docker push ${{ secrets.ECR_REPO_URI }}:latest
           docker push ${{ secrets.ECR_REPO_URI }}:${{ steps.versioning.outputs.new_tag }}
-          
-      - name: Push Git tags
-        run: git push --tags       
+          docker push ${{ secrets.ECR_REPO_URI }}:latest
+ 
 
 
 
