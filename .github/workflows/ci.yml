@@ -145,15 +145,16 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.EC2_KEY }}" > ~/.ssh/deploy_key.pem
           chmod 400 ~/.ssh/deploy_key.pem
-      - name: Deploy to EC2 via SSHH
-        run: |
-         ssh -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} \
-         "set -e && \
-         echo '🔐 Logging in to Amazon ECR...' && \
-         aws ecr get-login-password --region ${{ secrets.ECR_REGION }} | docker login --username AWS --password-stdin ${{ secrets.ECR_REPO_URI }} && \
-         echo '📁 Navigating to app directory...' && \
-         cd ~ && \
-         echo '⬇️ Pulling latest image...' && \
-         docker compose pull && \
-         echo '🚀 Restarting containers...' && \
-         docker compose up -d"
+
+      - name: Deploy to EC2 with SSH
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_KEY }}
+          script: |
+            aws ecr get-login-password --region ${{ secrets.ECR_REGION }} | \
+            docker login --username AWS --password-stdin ${{ secrets.ECR_REPO_URI }}
+            cd ~
+            docker compose pull
+            docker compose up -d
