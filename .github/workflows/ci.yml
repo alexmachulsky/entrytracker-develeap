@@ -70,6 +70,16 @@ jobs:
           run: |
             docker compose up -d --build
 
+        - name: Wait for MySQL to be ready
+          run: |
+            for i in {1..30}; do
+              nc -z localhost 3306 && echo "✅ MySQL is up" && exit 0
+              echo "⏳ MySQL not ready yet... ($i)"
+              sleep 1
+            done
+            echo "❌ MySQL did not start"
+            exit 1
+
         - name: Wait for EntryTracker to be ready
           run: |
             echo "⏳ Waiting for EntryTracker on port 5000..."
