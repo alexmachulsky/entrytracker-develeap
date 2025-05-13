@@ -149,7 +149,7 @@ jobs:
           docker tag entrytracker:latest ${{ secrets.ECR_REPO_URI }}:latest
           docker tag entrytracker:latest ${{ secrets.ECR_REPO_URI }}:${{ steps.versioning.outputs.new_tag }}
 
-      - name: Push Docker images to ECR
+      - name: Push Docker images to ECRR
         run: |
           docker push ${{ secrets.ECR_REPO_URI }}:latest
           docker push ${{ secrets.ECR_REPO_URI }}:${{ steps.versioning.outputs.new_tag }}
