@@ -1,11 +1,9 @@
-name: CI/CD Pipeline - EntryTracker
+name: CI Pipeline - EntryTracker
 
 on:
   push:
     branches:
       - main
-permissions:
-  contents: write
 
 jobs:
   Build-application:
@@ -23,23 +21,15 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-      
+
       - name: Start EntryTracker
         run: |
           nohup python app.py > app.log 2>&1 &
+          sleep 10
 
-          echo "Waiting for EntryTracker to start..."
-          for i in {1..30}; do
-          if curl -sSf http://localhost:5000 > /dev/null; then
-          echo "✅ EntryTracker is up!"
-          break
-          fi
-          echo "⏳ Still waiting for EntryTracker... ($i)"
-          sleep 1
-          done
-
-          # Final check (fail if still not responding)
-          curl --fail http://localhost:5000 || (echo "❌ App did not respond!" && cat app.log && exit 1)
+      - name: Run Tests
+        run: |
+          curl --fail http://localhost:5000 || (echo "App did not respond!" && cat app.log && exit 1)
 
   Package-application:
     needs: Build-application
@@ -51,14 +41,6 @@ jobs:
       - name: Build Docker image
         run: |
           docker build -t entrytracker:latest .
-          docker save entrytracker:latest -o entrytracker.tar
-          echo "Docker image saved as entrytracker.tar"
-
-      - name: Upload Docker image as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: entrytracker-image
-          path: entrytracker.tar
 
   E2E-tests:
     needs: Package-application
@@ -68,87 +50,102 @@ jobs:
         - name: Checkout code
           uses: actions/checkout@v4
 
+        - name: Set up Docker Compose
+          run: docker compose version
+
         - name: Start E2E environment with docker compose
           run: |
             docker compose up -d --build
-
-        - name: Wait for EntryTracker to be fully ready (DB included)
+            sleep 15
+        - name: Run E2E test with curl
           run: |
-            echo "⏳ Waiting for EntryTracker to connect to DB..."
-            for i in {1..30}; do
-              response=$(curl -s http://localhost:5000 || echo "")
-              echo "📡 Response attempt $i:"
-              echo "$response"
-              if echo "$response" | grep -q '"message": "Data fetched successfully from the database."'; then
-                echo "✅ EntryTracker is fully connected to the database!"
-                exit 0
-              else
-                echo "🕐 Waiting... ($i)"
-                sleep 1
-              fi
-            done
-            echo "❌ EntryTracker did not connect to the database in time."
-            exit 1
-
-
+            curl --fail http://localhost:5000 || (echo "E2E test failed!" && docker compose logs && exit 1)
+        
+        - name: Shut down E2E environment
+          run: docker compose down -v
 
   Push-to-ECR:
     needs: E2E-tests
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Download Docker image artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: entrytracker-image
-
-      - name: Load Docker image from tar
+      - name: Build Docker image
         run: |
-          docker load -i entrytracker.tar
-          echo "✅ Docker image loaded"
+          docker build -t entrytracker:latest .
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.ECR_REGION }}
-
-      - name: Login to Amazon ECR
-        run: |
-          aws ecr get-login-password --region ${{ secrets.ECR_REGION }} | \
-          docker login --username AWS --password-stdin ${{ secrets.ECR_REPO_URI }}
-
+          aws-region: ap-south-1
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+              aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+              aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+              aws-region: ap-south-1
+    
       - name: Get latest patch version and bump it
         id: versioning
         run: |
-          set -e
-          repo="entrytracker-develeap"
-          latest=$(aws ecr list-images \
-            --repository-name $repo \
-            --query 'imageIds[*].imageTag' \
-            --output text | tr '\t' '\n' | grep -E '^1\.0\.[0-9]+$' | sort -V | tail -n1)
-          if [ -z "$latest" ]; then
-            new_version="1.0.0"
-          else
-            patch=$(echo "$latest" | cut -d. -f3)
-            new_patch=$((patch + 1))
-            new_version="1.0.${new_patch}"
-          fi
-          echo "📦 New image version: $new_version"
-          echo "version=$new_version" >> "$GITHUB_OUTPUT"
-      - name: Tag Docker images
+                set -e
+                repo="entrytracker-develeap"
+      
+                latest=$(aws ecr list-images \
+                  --repository-name $repo \
+                  --query 'imageIds[*].imageTag' \
+                  --output text | tr '\t' '\n' | grep -E '^1\.0\.[0-9]+$' | sort -V | tail -n1)
+      
+                if [ -z "$latest" ]; then
+                  new_version="1.0"
+                else
+                  patch=$(echo "$latest" | cut -d. -f3)
+                  new_patch=$((patch + 1))
+                  new_version="1.${new_patch}"
+                fi
+      
+                echo "📦 New image version: $new_version"
+                echo "version=$new_version" >> $GITHUB_OUTPUT
+
+      - name: Build Docker image
         run: |
-          docker tag entrytracker:latest 033567013533.dkr.ecr.ap-south-1.amazonaws.com/entrytracker-develeap:latest
-          docker tag entrytracker:latest 033567013533.dkr.ecr.ap-south-1.amazonaws.com/entrytracker-develeap:${{ steps.versioning.outputs.version }}
+            docker build -t entrytracker:latest \
+                         -t entrytracker:${{ steps.versioning.outputs.version }} .
+            echo "version=$new_version" >> $GITHUB_OUTPUT
+  
+      - name: Build Docker image
+        run: |
+            docker build -t entrytracker:latest \
+                         -t entrytracker:${{ steps.versioning.outputs.version }} .
+  
+      - name: Login to Amazon ECR
+        run: |
+            aws ecr get-login-password --region ap-south-1 | \
+            docker login --username AWS --password-stdin 033567013533.dkr.ecr.ap-south-1.amazonaws.com
+  
+      - name: Tag Docker images for ECR
+        run: |
+            docker tag entrytracker:latest 033567013533.dkr.ecr.ap-south-1.amazonaws.com/entrytracker-develeap:latest
+            docker tag entrytracker:${{ steps.versioning.outputs.version }} 033567013533.dkr.ecr.ap-south-1.amazonaws.com/entrytracker-develeap:${{ steps.versioning.outputs.version }}
+  
       - name: Push Docker images to ECR
         run: |
-          docker push 033567013533.dkr.ecr.ap-south-1.amazonaws.com/entrytracker-develeap:latest
-          docker push 033567013533.dkr.ecr.ap-south-1.amazonaws.com/entrytracker-develeap:${{ steps.versioning.outputs.version }}
+            docker push 033567013533.dkr.ecr.ap-south-1.amazonaws.com/entrytracker-develeap:latest
+            docker push 033567013533.dkr.ecr.ap-south-1.amazonaws.com/entrytracker-develeap:${{ steps.versioning.outputs.version }}
+      - name: Configure Git user
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
 
+      - name: Create Git tag for the version
+        run: |
+          git tag -a v${{ steps.versioning.outputs.version }} -m "Release v${{ steps.versioning.outputs.version }}"
+
+      - name: Push Git tag to GitHub
+        run: git push origin v${{ steps.versioning.outputs.version }}
 
 
   Deploy-to-EC2:
@@ -164,16 +161,21 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.EC2_KEY }}" > ~/.ssh/deploy_key.pem
           chmod 400 ~/.ssh/deploy_key.pem
-
-      - name: Deploy to EC2 with SSH
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_KEY }}
-          script: |
-            aws ecr get-login-password --region ${{ secrets.ECR_REGION }} | \
-            docker login --username AWS --password-stdin ${{ secrets.ECR_REPO_URI }}
-            cd ~
-            docker compose pull
-            docker compose up -d
+      - name: Deploy to EC2 via SSH
+        run: |
+            ssh -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+              set -e
+  
+              echo "🔐 Logging in to Amazon ECR..."
+              aws ecr get-login-password --region ${{ secrets.ECR_REGION }} | \
+                docker login --username AWS --password-stdin ${{ secrets.ECR_REPO_URI }}
+  
+              echo "📁 Navigating to app directory..."
+              cd ~
+  
+              echo "⬇️ Pulling latest image..."
+              docker compose pull
+  
+              echo "🚀 Restarting containers..."
+              docker compose up -d
+              EOF 
