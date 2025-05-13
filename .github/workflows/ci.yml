@@ -68,7 +68,7 @@ jobs:
 
         - name: Start and verify E2E environment
           run: |
-            docker compose up -d --build
+            docker compose up -d
 
             echo "Waiting for EntryTracker container to respond..."
             for i in {1..30}; do
