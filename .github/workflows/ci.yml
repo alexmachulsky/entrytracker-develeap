@@ -140,16 +140,14 @@ jobs:
           fi
           echo "📦 New image version: $new_version"
           echo "version=$new_version" >> "$GITHUB_OUTPUT"
-
-      - name: Tag Docker images correctly
+      - name: Tag Docker images
         run: |
-          docker tag entrytracker:latest ${{ secrets.ECR_REPO_URI }}:latest
-          docker tag entrytracker:latest ${{ secrets.ECR_REPO_URI }}:${{ steps.versioning.outputs.version }}
-
+          docker tag entrytracker:latest 033567013533.dkr.ecr.ap-south-1.amazonaws.com/entrytracker-develeap:latest
+          docker tag entrytracker:latest 033567013533.dkr.ecr.ap-south-1.amazonaws.com/entrytracker-develeap:${{ steps.versioning.outputs.version }}
       - name: Push Docker images to ECR
         run: |
-          docker push ${{ secrets.ECR_REPO_URI }}:latest
-          docker push ${{ secrets.ECR_REPO_URI }}:${{ steps.versioning.outputs.version }}
+          docker push 033567013533.dkr.ecr.ap-south-1.amazonaws.com/entrytracker-develeap:latest
+          docker push 033567013533.dkr.ecr.ap-south-1.amazonaws.com/entrytracker-develeap:${{ steps.versioning.outputs.version }}
 
 
 
