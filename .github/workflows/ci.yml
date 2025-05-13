@@ -131,7 +131,7 @@ jobs:
           latest=$(aws ecr list-images \
             --repository-name $repo \
             --query 'imageIds[*].imageTag' \
-            --output text | tr '\t' '\n' | grep -E '^1\.0\.[0-9]+$' | sort -V | tail -n1)
+            --output text | tr '\t' '\n' | grep -E '^1\\.0\\.[0-9]+$' | sort -V | tail -n1)
 
           if [ -z "$latest" ]; then
             new_version="1.0.0"
@@ -142,12 +142,13 @@ jobs:
           fi
 
           echo "📦 New image version: $new_version"
-          echo "version=$new_version" >> "$GITHUB_OUTPUT"
+          echo "new_tag=$new_version" >> "$GITHUB_OUTPUT"
 
       - name: Tag Docker images correctly
         run: |
           docker tag entrytracker:latest ${{ secrets.ECR_REPO_URI }}:latest
           docker tag entrytracker:latest ${{ secrets.ECR_REPO_URI }}:${{ steps.versioning.outputs.new_tag }}
+
       - name: Push Docker images to ECR
         run: |
           docker push ${{ secrets.ECR_REPO_URI }}:latest
