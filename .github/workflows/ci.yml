@@ -151,11 +151,9 @@ jobs:
       - name: Tag Docker images correctly
         run: |
           IMAGE_ID=$(docker images --format "{{.Repository}}:{{.Tag}}" | grep entrytracker)
-          docker tag $IMAGE_ID ${{ secrets.ECR_REPO_URI }}:latest
           docker tag $IMAGE_ID ${{ secrets.ECR_REPO_URI }}:${{ steps.versioning.outputs.new_tag }}
       - name: Push Docker images to ECR
         run: |
-          docker push ${{ secrets.ECR_REPO_URI }}:latest
           docker push ${{ secrets.ECR_REPO_URI }}:${{ steps.versioning.outputs.new_tag }}
           
 
