@@ -76,7 +76,7 @@ jobs:
 
         - name: Start E2E environment with docker compose
           run: |
-            docker compose up -d --build
+            docker compose up -d
         - name: Wait for EntryTracker to be fully ready (DB included)
           run: |
             echo "⏳ Waiting for EntryTracker to connect to DB..."
