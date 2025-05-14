@@ -153,15 +153,6 @@ jobs:
     needs: Push-to-ECR
     runs-on: ubuntu-latest
     steps:
-      - name: Install SSH client
-        run: |
-            sudo apt-get update
-            sudo apt-get install -y openssh-client
-      - name: Add SSH key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_KEY }}" > ~/.ssh/deploy_key.pem
-          chmod 400 ~/.ssh/deploy_key.pem
       - name: Deploy to EC2 with SSH
         uses: appleboy/ssh-action@v1
         with:
