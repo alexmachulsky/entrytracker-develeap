@@ -143,11 +143,11 @@ jobs:
       - name: Tag Docker images correctly
         run: |
           docker tag entrytracker:latest ${{ secrets.ECR_REPO_URI }}:latest
-          docker tag entrytracker:latest ${{ secrets.ECR_REPO_URI }}:${{ steps.versioning.outputs.new_tag }}
+          docker tag entrytracker:latest ${{ secrets.ECR_REPO_URI }}:${{ steps.increment_version.outputs.new_tag }}
       - name: Push Docker images to ECRR
         run: |
           docker push ${{ secrets.ECR_REPO_URI }}:latest
-          docker push ${{ secrets.ECR_REPO_URI }}:${{ steps.versioning.outputs.new_tag }}
+          docker push ${{ secrets.ECR_REPO_URI }}:${{ steps.increment_version.outputs.new_tag }}
   Deploy-to-EC2:
     needs: Push-to-ECR
     runs-on: ubuntu-latest
