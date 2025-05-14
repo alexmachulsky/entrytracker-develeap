@@ -173,3 +173,17 @@ jobs:
             docker compose pull
             docker compose up -d
 
+            echo "⏳ Waiting for the app to become ready..."
+            for i in {1..30}; do
+              response=$(curl -s http://localhost)
+              if echo "$response" | grep -q '"message": "Data fetched successfully from the database."'; then
+                echo "✅ Application is up and healthy!"
+                exit 0
+              fi
+              sleep 1
+            done
+
+            echo "❌ Application did not respond in time:"
+            curl -s http://localhost || echo "No response"
+            exit 1
+
