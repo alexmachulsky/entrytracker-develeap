@@ -79,7 +79,7 @@ jobs:
           run: |
             echo "⏳ Waiting for EntryTracker to connect to DB..."
             for i in {1..30}; do
-              response=$(curl -s http://localhost:80 || echo "")
+              response=$(curl -s http://localhost:5000 || echo "")
               echo "📡 Response attempt $i:"
               echo "$response"
               if echo "$response" | grep -q '"message": "Data fetched successfully from the database."'; then
