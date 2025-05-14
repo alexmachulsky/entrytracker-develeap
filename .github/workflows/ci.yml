@@ -64,8 +64,6 @@ jobs:
         with:
           name: entrytracker-image
           path: entrytracker.tar
-
-
   E2E-tests:
     needs: Package-application
     runs-on: ubuntu-latest
