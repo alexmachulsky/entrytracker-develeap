@@ -46,16 +46,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Build Docker image
-        run: |
-          docker build -t entrytracker:latest .
-          docker save entrytracker:latest -o entrytracker.tar
-          echo "Docker image saved as entrytracker.tar"
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image using BuildKit
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          tags: entrytracker:latest
+          outputs: type=docker,dest=entrytracker.tar
+
       - name: Upload Docker image as artifact
         uses: actions/upload-artifact@v4
         with:
           name: entrytracker-image
           path: entrytracker.tar
+
 
   E2E-tests:
     needs: Package-application
