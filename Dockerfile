@@ -1,29 +1,21 @@
-# Use Python 3.10-slim as base image
+# Use Python 3.10 base image
 FROM python:3.10-slim
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    POETRY_VIRTUALENVS_CREATE=false
+    PYTHONUNBUFFERED=1
 
-# Install system dependencies
-RUN apt-get update \
-    apt-get install -y --no-install-recommends build-essential curl \
-    rm -rf /var/lib/apt/lists/*
-# Set working directory
+# Create app directory
 WORKDIR /app
 
-# Copy only requirements first to leverage Docker layer caching
+# Copy requirements and install dependencies
 COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Install Python dependencies
-RUN pip install --upgrade pip \
-    pip install --no-cache-dir -r requirements.txt
-
-# Copy project files
+# Copy the entire application code
 COPY . .
 
-# Expose the application port
+# Expose port 5000
 EXPOSE 5000
 
 # Run the application
