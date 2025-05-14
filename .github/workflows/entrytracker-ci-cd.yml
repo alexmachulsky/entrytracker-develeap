@@ -173,17 +173,19 @@ jobs:
             docker compose pull
             docker compose up -d
 
-            echo "⏳ Waiting for the app to become ready..."
+            echo "⏳ Waiting for EntryTracker to connect to DB..."
             for i in {1..30}; do
               response=$(curl -s http://localhost)
+              echo "📡 Response attempt $i:"
+              echo "$response"
               if echo "$response" | grep -q '"message": "Data fetched successfully from the database."'; then
-                echo "✅ Application is up and healthy!"
+                echo "✅ EntryTracker is fully connected to the database!"
                 exit 0
+              else
+                echo "🕐 Waiting... ($i)"
+                sleep 1
               fi
-              sleep 1
             done
-
-            echo "❌ Application did not respond in time:"
-            curl -s http://localhost || echo "No response"
+            echo "❌ EntryTracker did not connect to the database in time."
             exit 1
 
