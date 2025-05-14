@@ -109,15 +109,16 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.ECR_REGION }}
 
-      - name: Login to Amazon ECRR
+      - name: Login to Amazon ECR
         run: |
           aws ecr get-login-password --region ${{ secrets.ECR_REGION }} | \
           docker login --username AWS --password-stdin ${{ secrets.ECR_REPO_URI }}
+
       - name: Get the latest Git tag and increment patch version
         id: increment_version
         run: |
           git fetch --tags
-          latest_tag=$(git tag -l "v*" | sort -V | tail -n 1)
+          latest_tag=$(git tag -l  | sort -V | tail -n 1)
 
           if [ -z "$latest_tag" ]; then
             new_tag="1.0.0"
