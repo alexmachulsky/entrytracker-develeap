@@ -10,13 +10,17 @@ services:
       - db_data:/var/lib/mysql
     networks:
       - backend-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   entrytracker:
     build: .
-    ports:
-      - "5000:5000"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     env_file:
       - env.env
     networks:
