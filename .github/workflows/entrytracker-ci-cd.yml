@@ -157,7 +157,7 @@ jobs:
           docker push ${{ secrets.ECR_REPO_URI }}:latest
           docker push ${{ secrets.ECR_REPO_URI }}:${{ steps.increment_version.outputs.new_tag }}
   Deploy-to-EC2:
-    needs: Push-to-ECRR
+    needs: Push-to-ECR
     runs-on: ubuntu-latest
     steps:
       - name: Deploy to EC2 with SSH
