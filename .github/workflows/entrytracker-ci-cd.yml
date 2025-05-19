@@ -1,6 +1,6 @@
+# CI/CD pipeline for EntryTracker application using GitHub Actions, Docker, and AWS ECR - Alex Machulsky.
 
 name: CI/CD Pipeline - EntryTracker
-description: CI/CD pipeline for EntryTracker application using GitHub Actions, Docker, and AWS ECR - Alex Machulsky.
 
 on:
   push:
